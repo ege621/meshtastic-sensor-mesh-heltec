@@ -1,0 +1,66 @@
+diff --git a/platformio.ini b/platformio.ini
+index 62bbf8a24..d02e9782b 100644
+--- a/platformio.ini
++++ b/platformio.ini
+@@ -2,7 +2,7 @@
+ ; https://docs.platformio.org/page/projectconf.html
+ 
+ [platformio]
+-default_envs = tbeam
++default_envs = heltec-v3
+ 
+ extra_configs =
+ 	arch/*/*.ini
+@@ -73,6 +73,8 @@ lib_deps =
+ 	nanopb/Nanopb@0.4.91
+ 	# renovate: datasource=custom.pio depName=ErriezCRC32 packageName=erriez/library/ErriezCRC32
+ 	erriez/ErriezCRC32@1.0.1
++	# renovate: datasource=custom.pio depName=ArduinoJson packageName=bblanchon/library/ArduinoJson
++	bblanchon/ArduinoJson@6.21.4
+ 
+ ; Used for the code analysis in PIO Home / Inspect
+ check_tool = cppcheck
+diff --git a/src/main.cpp b/src/main.cpp
+index 9e46021c9..ec8de803b 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -292,6 +292,7 @@ void printInfo()
+     LOG_INFO("S:B:%d,%s,%s,%s", HW_VENDOR, optstr(APP_VERSION), optstr(APP_ENV), optstr(APP_REPO));
+ }
+ #ifndef PIO_UNIT_TESTING
++
+ void setup()
+ {
+ 
+@@ -917,7 +918,6 @@ void setup()
+ 
+     // Now that the mesh service is created, create any modules
+     setupModules();
+-
+     // warn the user about a low entropy key
+     if (nodeDB->keyIsLowEntropy && !nodeDB->hasWarned) {
+         LOG_WARN(LOW_ENTROPY_WARNING);
+diff --git a/src/modules/Modules.cpp b/src/modules/Modules.cpp
+index 3528f57f5..9e9eeeddb 100644
+--- a/src/modules/Modules.cpp
++++ b/src/modules/Modules.cpp
+@@ -102,6 +102,9 @@
+ #if !MESHTASTIC_EXCLUDE_DROPZONE
+ #include "modules/DropzoneModule.h"
+ #endif
++#if defined(ARCH_ESP32) && (defined(HELTEC_V3) || defined(HELTEC_WSL_V3))
++#include "modules/adc_uplink/adc_uplink.h"
++#endif
+ 
+ /**
+  * Create module instances here.  If you are adding a new module, you must 'new' it here (or somewhere else)
+@@ -163,6 +166,9 @@ void setupModules()
+ #endif
+         // Example: Put your module here
+         // new ReplyModule();
++#if defined(ARCH_ESP32) && (defined(HELTEC_V3) || defined(HELTEC_WSL_V3))
++        adcUplinkModule = new ADCUplinkModule();
++#endif
+ #if (HAS_BUTTON || ARCH_PORTDUINO) && !MESHTASTIC_EXCLUDE_INPUTBROKER
+         if (config.display.displaymode != meshtastic_Config_DisplayConfig_DisplayMode_COLOR) {
+             rotaryEncoderInterruptImpl1 = new RotaryEncoderInterruptImpl1();
