@@ -102,6 +102,9 @@
 #if !MESHTASTIC_EXCLUDE_DROPZONE
 #include "modules/DropzoneModule.h"
 #endif
+#if defined(ARCH_ESP32) && (defined(HELTEC_V3) || defined(HELTEC_WSL_V3))
+#include "modules/adc_uplink/adc_uplink.h"
+#endif
 
 /**
  * Create module instances here.  If you are adding a new module, you must 'new' it here (or somewhere else)
@@ -163,6 +166,9 @@ void setupModules()
 #endif
         // Example: Put your module here
         // new ReplyModule();
+#if defined(ARCH_ESP32) && (defined(HELTEC_V3) || defined(HELTEC_WSL_V3))
+        adcUplinkModule = new ADCUplinkModule();
+#endif
 #if (HAS_BUTTON || ARCH_PORTDUINO) && !MESHTASTIC_EXCLUDE_INPUTBROKER
         if (config.display.displaymode != meshtastic_Config_DisplayConfig_DisplayMode_COLOR) {
             rotaryEncoderInterruptImpl1 = new RotaryEncoderInterruptImpl1();
