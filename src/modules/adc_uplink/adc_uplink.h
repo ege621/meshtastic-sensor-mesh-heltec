@@ -5,25 +5,58 @@
 #include "configuration.h"
 #include "Observer.h"
 #include <Adafruit_SHT31.h>
+#include "sen66_driver.h"
 #include <map>
 #include <string>
+
+// Sensor type enumeration
+enum class SensorType {
+    NONE = 0,
+    SHT31 = 1,
+    SEN66 = 2
+};
 
 struct RemoteSensorData {
     float temperature;
     float humidity;
     uint32_t receivedTime;
     std::string nodeId;
+    
+    // Air quality parameters (for SEN66)
+    bool hasAirQuality;
+    float pm1p0;
+    float pm2p5;
+    float pm4p0;
+    float pm10p0;
+    float vocIndex;
+    float noxIndex;
+  float co2eq;
 };
 
 class ADCUplinkModule : public SinglePortModule, private concurrency::OSThread, public Observable<const UIFrameEvent *>
 {
     bool firstTime = true;
+    
+    // Sensor objects
     Adafruit_SHT31 sht31;
-    bool sht31Available = false;
+    SEN66Driver sen66;
+    
+    // Active sensor type
+    SensorType activeSensor = SensorType::NONE;
     
     // Store latest sensor readings for OLED display
     float lastTemperature = 0.0f;
     float lastHumidity = 0.0f;
+    
+    // Air quality data (SEN66 only)
+    float lastPM1p0 = 0.0f;
+    float lastPM2p5 = 0.0f;
+    float lastPM4p0 = 0.0f;
+    float lastPM10p0 = 0.0f;
+    float lastVOCIndex = 0.0f;
+    float lastNOxIndex = 0.0f;
+  float lastCO2 = 0.0f;
+    
     uint32_t lastReadingTime = 0;
     uint32_t lastBroadcastTime = 0;  // Track when we last broadcasted
     
@@ -46,9 +79,8 @@ class ADCUplinkModule : public SinglePortModule, private concurrency::OSThread, 
     virtual ProcessMessage handleReceived(const meshtastic_MeshPacket &mp) override;
     
   private:
-    // SHT31 I2C Configuration
+    // I2C Configuration
     // For Heltec V3: I2C is on GPIO17 (SDA) and GPIO18 (SCL) by default
-    // SHT31 default I2C address is 0x44
     static constexpr uint8_t SHT31_I2C_ADDR = 0x44;
     
     // Timing Configuration
@@ -58,8 +90,13 @@ class ADCUplinkModule : public SinglePortModule, private concurrency::OSThread, 
     
     void makeShortId(char out[8]);
     void sendJsonOverMesh(const char* json, size_t len);
+    
+    // Sensor initialization and reading methods
+    bool initSensors();
     bool initSHT31();
+    bool initSEN66();
     bool readSHT31(float &temp, float &humidity);
+    bool readSEN66(SEN66Data &data);
 };
 
 extern ADCUplinkModule *adcUplinkModule;
