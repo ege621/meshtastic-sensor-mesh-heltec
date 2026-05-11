@@ -6,6 +6,7 @@
 #include "Observer.h"
 #include <Adafruit_SHT31.h>
 #include "sen66_driver.h"
+#include "modules/WiFiConfig/WiFiConnectivity.h"
 #include <map>
 #include <string>
 
@@ -63,6 +64,16 @@ class ADCUplinkModule : public SinglePortModule, private concurrency::OSThread, 
     // Store remote sensor data from other nodes
     std::map<uint32_t, RemoteSensorData> remoteSensors;
     
+    // WiFi connectivity status (non-blocking)
+    bool wifiInitialized = false;
+    uint32_t lastWifiAttempt = 0;
+    uint32_t lastWifiSendAttempt = 0;
+    
+    // Buffer for WiFi data queue (non-blocking)
+    char wifiDataBuffer[512] = {0};
+    size_t wifiDataLen = 0;
+    bool wifiDataPending = false;
+    
   public:
     ADCUplinkModule();
 
@@ -90,6 +101,10 @@ class ADCUplinkModule : public SinglePortModule, private concurrency::OSThread, 
     
     void makeShortId(char out[8]);
     void sendJsonOverMesh(const char* json, size_t len);
+    void queueJsonForWiFi(const char* json, size_t len);
+    void processPendingWiFiData();
+    void initWiFiConnectivity();
+    void storeSensorData(uint32_t nodeId, const char* sensorJson, const char* shortId);
     
     // Sensor initialization and reading methods
     bool initSensors();
